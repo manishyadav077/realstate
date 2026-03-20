@@ -13,7 +13,7 @@ A complete real-estate listing search module with a high-performance backend (No
 
 1.  **Clone the repository**:
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/manishyadav077/realstate.git
     cd realstate
     ```
 
