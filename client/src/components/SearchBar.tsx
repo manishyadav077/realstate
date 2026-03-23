@@ -1,40 +1,58 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useTransition } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { useDebounce } from '../hooks/debounce';
 
 export default function SearchBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [keyword, setKeyword] = useState(searchParams.get('keyword') || '');
   const [isPending, startTransition] = useTransition();
   const debouncedKeyword = useDebounce(keyword, 500);
 
-  // Keep local state in sync with URL if it changes elsewhere
+
+  const searchParamsRef = useRef(searchParams);
+  const pathnameRef = useRef(pathname);
+  
   useEffect(() => {
-    setKeyword(searchParams.get('keyword') || '');
+    searchParamsRef.current = searchParams;
+    pathnameRef.current = pathname;
+  }, [searchParams, pathname]);
+
+
+  useEffect(() => {
+    const urlKeyword = searchParams.get('keyword') || '';
+    if (keyword !== urlKeyword) {
+      setKeyword(urlKeyword);
+    }
   }, [searchParams]);
 
-  // Automatically update the URL when the debounced keyword changes
+
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    const currentKeyword = searchParams.get('keyword') || '';
+    const currentParams = searchParamsRef.current;
+    const currentPathname = pathnameRef.current;
+    const params = new URLSearchParams(currentParams.toString());
+    const urlKeyword = currentParams.get('keyword') || '';
 
-    if (debouncedKeyword === currentKeyword) return;
 
-    if (debouncedKeyword.trim()) {
-      params.set('keyword', debouncedKeyword.trim());
-    } else {
-      params.delete('keyword');
-    }
+    if (debouncedKeyword === urlKeyword) return;
+
+
+    if (currentPathname !== '/listings' && !debouncedKeyword) return;
 
     startTransition(() => {
+      if (debouncedKeyword.trim()) {
+        params.set('keyword', debouncedKeyword.trim());
+      } else {
+        params.delete('keyword');
+      }
       params.set('page', '1');
       router.push(`/listings?${params.toString()}`);
     });
-  }, [debouncedKeyword, router, searchParams]);
+  }, [debouncedKeyword, router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
